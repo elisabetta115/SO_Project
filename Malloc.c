@@ -15,6 +15,7 @@ static unsigned char buddy_bitmap[BUDDY_MEMORY_SIZE / MIN_BLOCK_SIZE / 8];
 static void *buddy_memory;
 static int level_size[MAX_LEVELS];
 
+/*HELPER FUNCTIONS FOR BUDDY ALLOCATOR*/
 // Helper function to get buddy index
 int get_buddy_index(size_t size) {
     int index = 0;
@@ -55,18 +56,6 @@ void split_buddy(int index) {
     }
 }
 
-// Buddy allocator function
-void *buddy_alloc(size_t size) {
-    int index = get_buddy_index(size);
-    int free_index = find_free_buddy(index);
-    if (free_index == -1) {
-        return NULL;
-    }
-    split_buddy(free_index);
-    set_buddy_bitmap(free_index, 1);
-    return buddy_memory + free_index * MIN_BLOCK_SIZE;
-}
-
 // Helper function to merge buddy blocks
 void merge_buddy(int index) {
     while (index > 0) {
@@ -79,11 +68,18 @@ void merge_buddy(int index) {
     }
 }
 
-// Buddy free function
-void buddy_free(void *ptr) {
-    int index = (ptr - buddy_memory) / MIN_BLOCK_SIZE;
-    set_buddy_bitmap(index, 0);
-    merge_buddy(index);
+/* MALLOC FUNCTIONS*/
+
+// Buddy allocator function
+void *buddy_alloc(size_t size) {
+    int index = get_buddy_index(size);
+    int free_index = find_free_buddy(index);
+    if (free_index == -1) {
+        return NULL;
+    }
+    split_buddy(free_index);
+    set_buddy_bitmap(free_index, 1);
+    return buddy_memory + free_index * MIN_BLOCK_SIZE;
 }
 
 // Large allocation function
@@ -100,6 +96,19 @@ void *large_alloc(size_t size) {
     return (char *)ptr + sizeof(size_t);
 }
 
+
+// Custom malloc function
+void *pseudo_malloc(size_t size) {
+    if (size < PAGE_SIZE / 4) {
+        return buddy_alloc(size);
+    } else {
+        return large_alloc(size);
+    }
+}
+
+
+/*FREE FUNCTION*/
+
 // Large free function
 void large_free(void *ptr) {
     //control if ptr is valid
@@ -113,13 +122,11 @@ void large_free(void *ptr) {
     munmap(real_ptr, size);
 }
 
-// Custom malloc function
-void *pseudo_malloc(size_t size) {
-    if (size < PAGE_SIZE / 4) {
-        return buddy_alloc(size);
-    } else {
-        return large_alloc(size);
-    }
+// Buddy free function
+void buddy_free(void *ptr) {
+    int index = (ptr - buddy_memory) / MIN_BLOCK_SIZE;
+    set_buddy_bitmap(index, 0);
+    merge_buddy(index);
 }
 
 // Custom free function
@@ -130,6 +137,8 @@ void pseudo_free(void *ptr) {
         large_free(ptr);
     }
 }
+
+/*BUDDY_MEMORY*/
 
 // Constructor function to initialize buddy allocator
 void init_buddy_allocator() {
