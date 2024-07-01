@@ -86,13 +86,39 @@ void buddy_free(void *ptr) {
     merge_buddy(index);
 }
 
+// Large allocation function
+void *large_alloc(size_t size) {
+    // Calculate the total size including space to store the allocation size
+    size_t total_size = size + sizeof(size_t);
+    void *ptr = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (ptr == MAP_FAILED) {
+        return NULL;
+    }
+    // Store the total size at the beginning of the allocated block
+    *((size_t *)ptr) = total_size;
+    // Return a pointer to the usable memory (after the size)
+    return (char *)ptr + sizeof(size_t);
+}
+
+// Large free function
+void large_free(void *ptr) {
+    //control if ptr is valid
+    if (ptr == NULL) {
+        return;
+    }
+    // Get the original pointer by subtracting the size of size_t
+    void *real_ptr = (char *)ptr - sizeof(size_t);
+    // Retrieve the total size stored at the beginning of the block
+    size_t size = *((size_t *)real_ptr);
+    munmap(real_ptr, size);
+}
 
 // Custom malloc function
 void *pseudo_malloc(size_t size) {
     if (size < PAGE_SIZE / 4) {
         return buddy_alloc(size);
     } else {
-        //return large_alloc(size);
+        return large_alloc(size);
     }
 }
 
@@ -101,7 +127,7 @@ void pseudo_free(void *ptr) {
     if (ptr >= buddy_memory && ptr < buddy_memory + BUDDY_MEMORY_SIZE) {
         buddy_free(ptr);
     } else {
-        //large_free(ptr);
+        large_free(ptr);
     }
 }
 
@@ -114,3 +140,5 @@ void init_buddy_allocator() {
     }
     memset(buddy_bitmap, 0, sizeof(buddy_bitmap));
 }
+
+/* to do: destroy buddy memory*/
