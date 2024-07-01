@@ -1,7 +1,8 @@
 #include "malloc.h"
-#include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/mman.h>
+#include <time.h>
 
 #define PAGE_SIZE 4096
 
@@ -11,44 +12,49 @@
 int testsRun = 0;
 int testsPassed = 0;
 
-// Test cases for the custom malloc implementation
-void test_small_allocation() {
-    void *ptr = pseudo_malloc(100);
-    assert(ptr != NULL);
-    printf("Test small allocation passed: %p\n", ptr);
-    pseudo_free(ptr);
+void asserTest(int condition, const char* message) {
+    testsRun++;
+    if (condition) {
+        testsPassed++;
+        printf("Test %d passed: %s\n", testsRun, message);
+    } else {
+        printf("Test %d failed: %s\n", testsRun, message);
+    }
 }
 
 
+void test_buddy_allocator() {
 
-void test_write_and_read() {
+    init_buddy_allocator();
+
+    // Test small allocation
+    void *ptr = pseudo_malloc(100);
+    asserTest(ptr != NULL, "Small allocation");
+
+    // Test write and read
     const char *test_string = "Hello World!";
     size_t len = strlen(test_string) + 1;
-
-    void *ptr = pseudo_malloc(len);
-    assert(ptr != NULL);
 
     // Write to memory
     strcpy(ptr, test_string);
 
     // Read from memory and verify
     char *read_string = (char *)ptr;
-    printf("Test write and read passed: %s\n", read_string);
-    assert(strcmp(read_string, test_string) == 0);
+    asserTest(strcmp(read_string, test_string) == 0, "Write and read");
 
     pseudo_free(ptr);
+    printf("\n\nTotal tests ran:\t%d\n", testsRun);
+	printf("Total tests passed:\t%d\n\n\n", testsPassed);
 }
 
 int main() {
 
-    printf("Starting testing...\n");
-
-
-    init_buddy_allocator();
-
-    // Run test cases
-    test_small_allocation();
-    test_write_and_read();
+    printf("Starting testing...\n\n\n");
+    clock_t beginningTime = clock();
+    test_buddy_allocator();
+    clock_t endingTime = clock();
+	printf("Ended testing.\n\n\n");
+    printf("Time taken: %f\n", (double)(endingTime - beginningTime) / CLOCKS_PER_SEC);
 
     return 0;
 }
