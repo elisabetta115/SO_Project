@@ -89,6 +89,36 @@ void merge_buddy(int index) {
     }
 }
 
+// Function to print the buddy allocator
+void print_buddy_allocator(void *ptr) {
+    printf("\n\n\nBuddy Allocator State:\n");
+    printf("Block Size: %d bytes\n", MIN_BLOCK_SIZE);
+    printf("Total Blocks: %d\n", BUDDY_MEMORY_SIZE / MIN_BLOCK_SIZE);
+    printf("Bitmap State (1: Allocated, 0: Free):\n");
+    
+    int total_blocks = BUDDY_MEMORY_SIZE / MIN_BLOCK_SIZE;
+    int target_index = -1;
+    if (ptr != NULL) {
+        target_index = (ptr - buddy_memory) / MIN_BLOCK_SIZE;
+    }
+
+    for (int i = 0; i < total_blocks; i++) {
+        int byte = i / 8;
+        int bit = i % 8;
+        int allocated = (buddy_bitmap[byte] & (1 << bit)) != 0;
+        if (i == target_index) {
+            printf("[%d]", allocated); // Highlight the block corresponding to ptr
+        } else {
+            printf("%d", allocated);
+        }
+        if ((i + 1) % 64 == 0) {
+            printf("\n");
+        }
+    }
+    printf("\n");
+}
+
+
 /* MALLOC FUNCTIONS*/
 
 // Buddy allocator function
