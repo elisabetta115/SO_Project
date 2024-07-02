@@ -130,12 +130,16 @@ void buddy_free(void *ptr) {
 }
 
 // Custom free function
-void pseudo_free(void *ptr) {
+int pseudo_free(void *ptr) {
+    if(ptr == NULL) {
+        return -1;
+    }
     if (ptr >= buddy_memory && ptr < buddy_memory + BUDDY_MEMORY_SIZE) {
         buddy_free(ptr);
     } else {
         large_free(ptr);
     }
+    return 1;
 }
 
 /*BUDDY_MEMORY*/
