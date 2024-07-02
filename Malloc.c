@@ -61,10 +61,15 @@ int find_free_buddy(int index) {
 
 // Helper function to split buddy block
 void split_buddy(int index) {
+    //index represents the block that needs to be split to accommodate a memory allocation.
+    //buddy_bitmap[index / 2] == 0 the buddy block is free 
     while (index > 0 && buddy_bitmap[index / 2] == 0) {
         index /= 2;
+        //Marks the current block (index) as allocated by setting its bitmap to 1.
         set_buddy_bitmap(index, 1);
+        //Marks the left buddy block as free by setting its bitmap to 0.
         set_buddy_bitmap(index * 2, 0);
+        //Marks the right buddy block as free by setting its bitmap to 0.
         set_buddy_bitmap(index * 2 + 1, 0);
     }
 }
@@ -72,10 +77,13 @@ void split_buddy(int index) {
 // Helper function to merge buddy blocks
 void merge_buddy(int index) {
     while (index > 0) {
+        //The buddy index is calculated based on whether the current index is even or odd.
         int buddy_index = index % 2 == 0 ? index + 1 : index - 1;
+        //& isolates the specific bit within the byte of buddy_bitmap corresponding to buddy_index
         if (buddy_bitmap[buddy_index / 8] & (1 << (buddy_index % 8))) {
             break;
         }
+        //Marks the parent block as free
         set_buddy_bitmap(index / 2, 0);
         index /= 2;
     }
@@ -94,6 +102,8 @@ void *buddy_alloc(size_t size) {
     split_buddy(free_index);
     set_buddy_bitmap(free_index, 1);
     //Return a pointer to the allocated memory block
+    //buddy memory is the start of the allocated memory region
+    //free_index * MIN_BLOCK_SIZE results in the exact byte address where the allocated block starts
     return buddy_memory + free_index * MIN_BLOCK_SIZE;
 }
 
@@ -138,6 +148,7 @@ void large_free(void *ptr) {
 
 // Buddy free function
 void buddy_free(void *ptr) {
+    //Calculate the index of the block in the buddy system
     int index = (ptr - buddy_memory) / MIN_BLOCK_SIZE;
     set_buddy_bitmap(index, 0);
     merge_buddy(index);
@@ -168,4 +179,14 @@ void init_buddy_allocator() {
     memset(buddy_bitmap, 0, sizeof(buddy_bitmap));
 }
 
-/* to do: destroy buddy memory*/
+// Destructor function to destroy buddy allocator
+void destroy_buddy_allocator() {
+    // Unmap the buddy memory
+    if (munmap(buddy_memory, BUDDY_MEMORY_SIZE) == -1) {
+        perror("munmap");
+        exit(1);
+    }
+
+    // Clear the buddy_bitmap array
+    memset(buddy_bitmap, 0, sizeof(buddy_bitmap));
+}
