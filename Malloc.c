@@ -5,6 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <errno.h>
 
 #define PAGE_SIZE 4096
 #define BUDDY_MEMORY_SIZE (1 << 20) // 1 MB
@@ -101,7 +102,8 @@ void print_buddy_allocator(void *ptr) {
     if (ptr != NULL) {
         target_index = (ptr - buddy_memory) / MIN_BLOCK_SIZE;
     }
-
+    /*TODO: handle case ptr not in buddy allocator*/
+    /*TODO: better print function*/
     for (int i = 0; i < total_blocks; i++) {
         int byte = i / 8;
         int bit = i % 8;
@@ -154,6 +156,7 @@ void *large_alloc(size_t size) {
 
 // Custom malloc function
 void *pseudo_malloc(size_t size) {
+    /*TODO: handle error case size <= 0*/
     if (size < PAGE_SIZE / 4) {
         return buddy_alloc(size);
     } else {
@@ -173,11 +176,15 @@ void large_free(void *ptr) {
     void *real_ptr = (char *)ptr - sizeof(size_t);
     // Retrieve the total size stored at the beginning of the block
     size_t size = *((size_t *)real_ptr);
+    /*TODO: unmap error handling*/
     munmap(real_ptr, size);
 }
 
 // Buddy free function
-void buddy_free(void *ptr) {
+int buddy_free(void *ptr) {
+    /*TODO: check block already free*/
+    
+    errno = EINVAL;
     //Calculate the index of the block in the buddy system
     int index = (ptr - buddy_memory) / MIN_BLOCK_SIZE;
     set_buddy_bitmap(index, 0);
@@ -200,23 +207,20 @@ int pseudo_free(void *ptr) {
 /*BUDDY_MEMORY*/
 
 // Constructor function to initialize buddy allocator
-void init_buddy_allocator() {
+int init_buddy_allocator() {
     buddy_memory = mmap(NULL, BUDDY_MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (buddy_memory == MAP_FAILED) {
-        perror("mmap");
-        exit(1);
+        return(-1);
     }
     memset(buddy_bitmap, 0, sizeof(buddy_bitmap));
 }
 
 // Destructor function to destroy buddy allocator
-void destroy_buddy_allocator() {
+int destroy_buddy_allocator() {
     // Unmap the buddy memory
     if (munmap(buddy_memory, BUDDY_MEMORY_SIZE) == -1) {
-        perror("munmap");
-        exit(1);
+       return(-1);
     }
-
     // Clear the buddy_bitmap array
     memset(buddy_bitmap, 0, sizeof(buddy_bitmap));
 }
