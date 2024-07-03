@@ -156,7 +156,10 @@ void *large_alloc(size_t size) {
 
 // Custom malloc function
 void *pseudo_malloc(size_t size) {
-    /*TODO: handle error case size <= 0*/
+    if(size <= 0) {
+        errno = EINVAL;
+        return NULL;
+    }
     if (size < PAGE_SIZE / 4) {
         return buddy_alloc(size);
     } else {
@@ -168,23 +171,24 @@ void *pseudo_malloc(size_t size) {
 /*FREE FUNCTION*/
 
 // Large free function
-void large_free(void *ptr) {
+int large_free(void *ptr) {
     if (ptr == NULL) {
-        return;
+        errno = EINVAL;
+        return -1;
     }
     // Get the original pointer by subtracting the size of size_t
     void *real_ptr = (char *)ptr - sizeof(size_t);
     // Retrieve the total size stored at the beginning of the block
     size_t size = *((size_t *)real_ptr);
-    /*TODO: unmap error handling*/
-    munmap(real_ptr, size);
+    if(munmap(real_ptr, size) == -1){
+        errno = EINVAL;
+        return -1;
+    }
 }
 
 // Buddy free function
 int buddy_free(void *ptr) {
     /*TODO: check block already free*/
-    
-    errno = EINVAL;
     //Calculate the index of the block in the buddy system
     int index = (ptr - buddy_memory) / MIN_BLOCK_SIZE;
     set_buddy_bitmap(index, 0);
