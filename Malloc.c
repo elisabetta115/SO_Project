@@ -157,35 +157,43 @@ void check_block(int level, int firstIndex, int lastIndex, bool firstPrint, bool
     }
     if (firstPrint)
     {
-        printf("Level %d: {", level + 1);
+        printf("Level: %d {", level);
     }
     if (all_free == 1)
     {
         printf("[ ]");
     }
-    else if (all_occupied == 1)
-    {
-        printf("[o]");
-    }
     else
     {
-        printf("[x]");
+        if (all_occupied == 1)
+        {
+            printf("[o]");
+        }
+        /*else
+        {
+            printf("[x]");
+        }*/
     }
     if (lastPrint)
     {
-        printf("}");
+        
     }
-
+    fflush(stdout);
     if (!all_free && !all_occupied)
     {
-        check_block(level + 1, firstIndex, lastIndex / 2 - 1, firstPrint, false);
+        check_block(level + 1, firstIndex, lastIndex / 2, firstPrint, false);
         check_block(level + 1, lastIndex / 2, lastIndex, false, lastPrint);
     }
+    printf("}");
 }
 
 // Function to print the buddy allocator
 int print_buddy_allocator(void *ptr)
 {
+    for (int i = 0; i < sizeof(buddy_bitmap); i++)
+    {
+        printf("%d", buddy_bitmap[i]);
+    }
     printf("\n\n\nBuddy Allocator State:\n");
 
     // Add legend
@@ -211,7 +219,7 @@ int print_buddy_allocator(void *ptr)
         return -1;
     }
 
-    check_block(0, 0, sizeof(BUDDY_MEMORY_SIZE), true, true);
+    check_block(0, 0, sizeof(buddy_bitmap), true, true);
     printf("\n");
     return 1;
 }
