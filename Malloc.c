@@ -81,7 +81,7 @@ int get_buddy_bitmap(int index)
 {
     int byte = index / 8;
     int bit = index % 8;
-    return buddy_bitmap[byte] & (1 << bit);
+    return (buddy_bitmap[byte] & (1 << bit))!=0;
 }
 
 // Helper function to find free buddy block
@@ -192,7 +192,7 @@ int print_buddy_allocator(void *ptr)
 {
     for (int i = 0; i < sizeof(buddy_bitmap); i++)
     {
-        printf("%d", buddy_bitmap[i]);
+        printf("%d", get_buddy_bitmap(i));
     }
     printf("\n\n\nBuddy Allocator State:\n");
 
