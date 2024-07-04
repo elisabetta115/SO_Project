@@ -27,9 +27,11 @@ void printTest(int condition, const char* message) {
 }
 
 void test_small_allocation() {
-    void *ptr = pseudo_malloc(100);
+    void *ptr;
+    int i = print_buddy_allocator(ptr);
+    ptr = pseudo_malloc(1);
     printTest(ptr != NULL, "Small allocation");
-    print_buddy_allocator(ptr);
+    i = print_buddy_allocator(ptr);
     pseudo_free(ptr);
 }
 

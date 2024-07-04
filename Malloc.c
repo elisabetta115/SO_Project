@@ -12,11 +12,29 @@
 #define MIN_BLOCK_SIZE (PAGE_SIZE >> 4) // 1/16 of page size
 #define MAX_LEVELS 16 // 1 MB / 64 = 16384 blocks (2^14 blocks), log2(16384) = 14 + 1 for initial split
 
+
+typedef enum {false, true} bool;
+
 //An array of bytes used as a bitmap to track the allocation status of each block of memory.
 static unsigned char buddy_bitmap[BUDDY_MEMORY_SIZE / MIN_BLOCK_SIZE / 8];
 //Pointer to the start of the allocated memory region
 static void *buddy_memory;
 static int level_size[MAX_LEVELS];
+
+/*BOOLEAN FUNCTIONS FOR */
+// Helper function to check if the bitmap is full
+int is_bitmap_full() {
+    size_t bitmap_bytes = sizeof(buddy_bitmap);
+    for (size_t i = 0; i < bitmap_bytes; i++) {
+        for (int bit = 0; bit < 8; bit++) {
+            if (!(buddy_bitmap[i] & (1 << bit))) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 
 /*HELPER FUNCTIONS FOR BUDDY ALLOCATOR*/
 
@@ -44,6 +62,13 @@ void set_buddy_bitmap(int index, int value) {
         //Perform a bitwise AND operation to set the bit to 0
         buddy_bitmap[byte] &= ~(1 << bit);
     }
+}
+
+//Get the buddy bitmap
+int get_buddy_bitmap(int index) {
+    int byte = index / 8;
+    int bit = index % 8;
+    return buddy_bitmap[byte] & (1 << bit);
 }
 
 // Helper function to find free buddy block
@@ -91,34 +116,86 @@ void merge_buddy(int index) {
 }
 
 // Function to print the buddy allocator
-void print_buddy_allocator(void *ptr) {
+int print_buddy_allocator(void *ptr) {
     printf("\n\n\nBuddy Allocator State:\n");
-    printf("Block Size: %d bytes\n", MIN_BLOCK_SIZE);
-    printf("Total Blocks: %d\n", BUDDY_MEMORY_SIZE / MIN_BLOCK_SIZE);
-    printf("Bitmap State (1: Allocated, 0: Free):\n");
     
+    // Add legend
+    printf("Legend:\n");
+    printf("[x] = Partially Occupied\n");
+    printf("[o] = Completely Occupied\n");
+    printf("[ ] = Free\n");
+    printf("[#] = Pointer Free\n");
+    printf("[-] = Pointer partially Occupied\n");
+    printf("[^] = Pointer completely Occupied\n");
+    
+
     int total_blocks = BUDDY_MEMORY_SIZE / MIN_BLOCK_SIZE;
     int target_index = -1;
-    if (ptr != NULL) {
+
+    // Check if ptr is within buddy_memory range
+    if (ptr != NULL && ptr >= buddy_memory && ptr < buddy_memory + BUDDY_MEMORY_SIZE) {
         target_index = (ptr - buddy_memory) / MIN_BLOCK_SIZE;
     }
-    /*TODO: handle case ptr not in buddy allocator*/
-    /*TODO: better print function*/
-    for (int i = 0; i < total_blocks; i++) {
-        int byte = i / 8;
-        int bit = i % 8;
-        int allocated = (buddy_bitmap[byte] & (1 << bit)) != 0;
-        if (i == target_index) {
-            printf("[%d]", allocated); // Highlight the block corresponding to ptr
-        } else {
-            printf("%d", allocated);
-        }
-        if ((i + 1) % 64 == 0) {
-            printf("\n");
-        }
+    else{
+        errno = EINVAL;
+        return -1;
     }
-    printf("\n");
+
+    for (int level = 0; level < MAX_LEVELS; level++) {
+        // Calculate the number of blocks at this level
+        int blocks_at_level = 1 << level;
+        int last_check = 0;
+        int is_target_in_block = 0;
+        int all_free;
+        int all_occupied;
+
+        printf("Level %d: ", level + 1);
+
+        for (int i = 0; i<total_blocks/blocks_at_level; i++){
+            all_free = 1;
+            all_occupied = 1;
+            is_target_in_block = 0;
+
+            for (int j = last_check; j<sizeof(buddy_bitmap)/blocks_at_level; j++){
+                if(get_buddy_bitmap(j)){
+                    all_free = 0;
+                }
+                else{
+                    all_occupied = 0;
+                }
+                if(j == target_index){
+                    is_target_in_block = 1;
+                }
+                last_check++;
+            }
+
+            if (all_free == 1) {
+                if (is_target_in_block) {
+                    printf("[#]");
+                } else {
+                    printf("[ ]");
+                }
+            } else if (all_occupied == 1) {
+                if (is_target_in_block) {
+                    printf("[^]");
+                } else {
+                    printf("[o]");
+                }
+            } else {
+                if (is_target_in_block) {
+                    printf("[-]");
+                } else {
+                    printf("[x]");
+                }
+            }  
+        }
+            
+
+        printf("\n");
+    }
+    return 1;
 }
+
 
 
 /* MALLOC FUNCTIONS*/
@@ -188,7 +265,10 @@ int large_free(void *ptr) {
 
 // Buddy free function
 int buddy_free(void *ptr) {
-    /*TODO: check block already free*/
+    if(is_bitmap_full()){
+        errno = EINVAL;
+        return -1;
+    }
     //Calculate the index of the block in the buddy system
     int index = (ptr - buddy_memory) / MIN_BLOCK_SIZE;
     set_buddy_bitmap(index, 0);
