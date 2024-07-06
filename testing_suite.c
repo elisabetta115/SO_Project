@@ -6,17 +6,9 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#define PAGE_SIZE 4096
-#define BUDDY_MEMORY_SIZE (1 << 20) // 1 MB
 
 int testsRun = 0;
 int testsPassed = 0;
-
-typedef enum
-{
-    false,
-    true
-} bool;
 
 void printTest(int condition, const char *message)
 {
@@ -204,7 +196,7 @@ void test_fragmentation()
 void test_edge_case_zero_allocation()
 {
     void *ptr = pseudo_malloc(0);
-    printTest(ptr != NULL, "Edge case zero allocation");
+    printTest(ptr == NULL, "Edge case zero allocation");
     pseudo_free(ptr);
 }
 
@@ -265,23 +257,33 @@ void test_random_allocations()
     printTest(passed, "Random allocations");
 }
 
-void test_pointer_distance(){
-    void *first_location = pseudo_malloc(1);
-    pseudo_free(first_location);
-    void *ptr = pseudo_malloc(16);
-    printf("ptr: %d, first_location: %d\n", ptr, first_location);
-    printTest(first_location == ptr, "Same pointer");
-    ptr = pseudo_malloc(16);
-    printf("ptr: %d, first_location: %d\n", ptr, first_location);
-    printTest(ptr-first_location == 16, "Pointer distance");
-    pseudo_free(first_location);
-    ptr = pseudo_malloc(64);
-    printf("ptr: %d, first_location: %d\n", ptr, first_location);
-    printTest(ptr-first_location == 64, "Pointer distance 2");
-    pseudo_free(first_location+16);
+void test_pointer_distance() {
+    void *first_location = pseudo_malloc(16);
+    void * ptr = pseudo_malloc(16);
+    printf("ptr: %p, first_location: %p\n", ptr, first_location);
+    printTest(ptr - first_location == MIN_BLOCK_SIZE, "Pointer distance");
+
     pseudo_free(ptr);
-    printf("ptr: %d, first_location: %d\n", ptr, first_location);
+    pseudo_free(first_location);
+    ptr = pseudo_malloc(16);
+    printf("ptr: %p, first_location: %p\n", ptr, first_location);
+    printTest(first_location == ptr, "Same pointer");
+
+    first_location = pseudo_malloc(16);
+    printf("ptr: %p, first_location: %p\n", ptr, first_location);
+    printTest(abs(ptr - first_location) == MIN_BLOCK_SIZE, "Pointer distance"); //abs per evitare che il risultato sia negativo, essendo ora allocati al contrario
+
+    void* ptr2 = pseudo_malloc(64);
+    printf("ptr2: %p, ptr: %p\n", ptr2, ptr);
+    printTest(abs(ptr2 - ptr) == 2*MIN_BLOCK_SIZE, "Pointer distance 2");
+
+
+
+    pseudo_free(first_location);
+    pseudo_free(ptr);
+    pseudo_free(ptr2);
 }
+
 
 int main()
 {
