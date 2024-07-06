@@ -7,16 +7,6 @@
 #include <sys/mman.h>
 #include <errno.h>
 
-#define PAGE_SIZE 4096
-#define BUDDY_MEMORY_SIZE (1 << 20)     // 1 MB
-#define MIN_BLOCK_SIZE (PAGE_SIZE >> 4) // 1/16 of page size
-#define MAX_LEVELS 16                   // 1 MB / 64 = 16384 blocks (2^14 blocks), log2(16384) = 14 + 1 for initial split
-
-typedef enum
-{
-    false,
-    true
-} bool;
 
 // An array of bytes used as a bitmap to track the allocation status of each block of memory.
 static unsigned char buddy_bitmap[BUDDY_MEMORY_SIZE / MIN_BLOCK_SIZE / 8];
@@ -229,6 +219,7 @@ int print_buddy_allocator(void *ptr)
 // Buddy allocator function
 void *buddy_alloc(size_t size)
 {
+    size = (size + MIN_BLOCK_SIZE - 1) & ~(MIN_BLOCK_SIZE - 1); // Align size to minimum block size
     // Determines the appropriate index in the buddy system for the requested size
     int index = get_buddy_index(size);
     int free_index = find_free_buddy(index);
@@ -268,7 +259,7 @@ void *pseudo_malloc(size_t size)
         errno = EINVAL;
         return NULL;
     }
-    if (size < PAGE_SIZE / 4)
+    else if (size < PAGE_SIZE / 4)
     {
         return buddy_alloc(size);
     }
