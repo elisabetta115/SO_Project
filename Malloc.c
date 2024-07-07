@@ -9,7 +9,6 @@
 
 #define DEBUG
 
-
 // An array of bytes used as a bitmap to track the allocation status of each block of memory.
 static unsigned char buddy_bitmap[BUDDY_MEMORY_SIZE / MIN_BLOCK_SIZE / 8];
 // Pointer to the start of the allocated memory region
@@ -49,7 +48,7 @@ int get_buddy_index(size_t size)
 }
 
 // Helper function to set buddy bitmap
-void set_buddy_bitmap(int index, int value)
+void set_bitmap(int index, int value)
 {
     // Calculate the byte and bit position in the bitmap
     int byte = index / 8;
@@ -69,11 +68,11 @@ void set_buddy_bitmap(int index, int value)
 }
 
 // Get the buddy bitmap
-int get_buddy_bitmap(int index)
+int get_bitmap(int index)
 {
     int byte = index / 8;
     int bit = index % 8;
-    return (buddy_bitmap[byte] & (1 << bit))!=0;
+    return (buddy_bitmap[byte] & (1 << bit)) != 0;
 }
 
 // Helper function to find free buddy block
@@ -85,6 +84,7 @@ int find_free_buddy(int index)
     {
         // i / 8 determinate the byte position in the bitmap
         // (1 << (i % 8)) set a mask with the bit at position i%8 set to 1
+        printf("FIND FREE BUDDY: i: %d, get_bitmap: %d, bitmap: %d\n",  i, get_bitmap(i), buddy_bitmap[i / 8] & (1 << (i % 8)));
         if ((buddy_bitmap[i / 8] & (1 << (i % 8))) == 0)
         {
             return i;
@@ -102,11 +102,11 @@ void split_buddy(int index)
     {
         index /= 2;
         // Marks the current block (index) as allocated by setting its bitmap to 1.
-        set_buddy_bitmap(index, 1);
+        set_bitmap(index, 1);
         // Marks the left buddy block as free by setting its bitmap to 0.
-        set_buddy_bitmap(index * 2, 0);
+        set_bitmap(index * 2, 0);
         // Marks the right buddy block as free by setting its bitmap to 0.
-        set_buddy_bitmap(index * 2 + 1, 0);
+        set_bitmap(index * 2 + 1, 0);
     }
 }
 
@@ -123,11 +123,12 @@ void merge_buddy(int index)
             break;
         }
         // Marks the parent block as free
-        set_buddy_bitmap(index / 2, 0);
+        set_bitmap(index / 2, 0);
         index /= 2;
     }
 }
 
+#ifdef DEBUG
 void check_block(int level, int firstIndex, int lastIndex, bool firstPrint, bool lastPrint)
 {
     int all_occupied = 1;
@@ -138,7 +139,7 @@ void check_block(int level, int firstIndex, int lastIndex, bool firstPrint, bool
     }
     for (int i = firstIndex; i < lastIndex; i++)
     {
-        if (get_buddy_bitmap(i))
+        if (get_bitmap(i))
         {
             all_free = 0;
         }
@@ -168,7 +169,6 @@ void check_block(int level, int firstIndex, int lastIndex, bool firstPrint, bool
     }
     if (lastPrint)
     {
-        
     }
     fflush(stdout);
     if (!all_free && !all_occupied)
@@ -179,13 +179,12 @@ void check_block(int level, int firstIndex, int lastIndex, bool firstPrint, bool
     printf("}");
 }
 
-#ifdef DEBUG
 // Function to print the buddy allocator
 int print_buddy_allocator(void *ptr)
 {
     for (int i = 0; i < sizeof(buddy_bitmap); i++)
     {
-        printf("%d", get_buddy_bitmap(i));
+        printf("%d", get_bitmap(i));
     }
     printf("\n\n\nBuddy Allocator State:\n");
 
@@ -227,12 +226,9 @@ void *buddy_alloc(size_t size)
     // Determines the appropriate index in the buddy system for the requested size
     int index = get_buddy_index(size);
     int free_index = find_free_buddy(index);
-    if (free_index == -1)
-    {
-        return NULL;
-    }
     split_buddy(free_index);
-    set_buddy_bitmap(free_index, 1);
+    set_bitmap(free_index, 1);
+    printf ("ALLOCATION: index: %d, bitmap : %d\n", free_index, get_bitmap(free_index));
     // Return a pointer to the allocated memory block
     // buddy memory is the start of the allocated memory region
     // free_index * MIN_BLOCK_SIZE results in the exact byte address where the allocated block starts
@@ -247,6 +243,7 @@ void *large_alloc(size_t size)
     void *ptr = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (ptr == MAP_FAILED)
     {
+        errno = EINVAL;
         return NULL;
     }
     // Store the total size at the beginning of the allocated block
@@ -265,6 +262,14 @@ void *pseudo_malloc(size_t size)
     }
     else if (size < PAGE_SIZE / 4)
     {
+        size = (size + MIN_BLOCK_SIZE - 1) & ~(MIN_BLOCK_SIZE - 1); // Align size to minimum block size
+        // Determines the appropriate index in the buddy system for the requested size
+        int index = get_buddy_index(size);
+        int free_index = find_free_buddy(index);
+        if (free_index == -1)
+        {
+            return large_alloc(size);
+        }
         return buddy_alloc(size);
     }
     else
@@ -298,17 +303,16 @@ int large_free(void *ptr)
 // Buddy free function
 int buddy_free(void *ptr)
 {
-    
     // Calculate the index of the block in the buddy system
     int index = (ptr - buddy_memory) / MIN_BLOCK_SIZE;
-    if (get_buddy_bitmap(index) == 0)
+    printf("FREE Index : %d, get_bitmap: %d\n", index, get_bitmap(index));
+    if (get_bitmap(index) == 0)
     {
         errno = EINVAL;
         return -1;
     }
-    set_buddy_bitmap(index, 0);
+    set_bitmap(index, 0);
     merge_buddy(index);
-
     return 1;
 }
 
@@ -322,13 +326,15 @@ int pseudo_free(void *ptr)
     }
     if (ptr >= buddy_memory && ptr < buddy_memory + BUDDY_MEMORY_SIZE)
     {
-        if(buddy_free(ptr)==-1){
+        if (buddy_free(ptr) == -1)
+        {
             ret = -1;
         }
     }
     else
     {
-        if(large_free(ptr) == -1){
+        if (large_free(ptr) == -1)
+        {
             ret = -1;
         }
     }
