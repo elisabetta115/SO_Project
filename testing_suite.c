@@ -256,6 +256,7 @@ void test_random_allocations()
             break;
         }
     }
+    print_bitmap();
     for (int i = 0; i < 100; i++)
     {
         if (pseudo_free(ptrs[i]) == -1)
@@ -264,12 +265,13 @@ void test_random_allocations()
             break;
         }
     }
+    print_bitmap();
     printTest(passed, "Random allocations");
 }
 
 void test_pointer_distance()
 {
-    clear_bitmap();
+    print_bitmap();
 
     void *first_location = pseudo_malloc(16);
     void *ptr = pseudo_malloc(16);
@@ -457,7 +459,6 @@ int main()
         return -1;
     }
 
-    // Run all tests
     test_small_allocation();
     test_large_allocation();
     test_boundary_conditions();

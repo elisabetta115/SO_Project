@@ -350,3 +350,12 @@ int destroy_buddy_allocator()
     memset(buddy_bitmap, 0, sizeof(buddy_bitmap));
     return 0;
 }
+
+void print_bitmap()
+{
+    for (int i = 0; i < (int) sizeof(buddy_bitmap); i++)
+    {
+        printf("%d", get_bitmap(i));
+    }
+    printf("\n");
+}
