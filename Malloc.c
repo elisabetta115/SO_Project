@@ -100,12 +100,12 @@ int find_free_buddy(int index)
 void split_buddy(int index)
 {
     int parent_index;
-    while (index > 0 && get_bitmap(index/2) == 0)
+    while (index > 0 && get_bitmap(index / 2) == 0)
     {
         parent_index = index / 2;
-        set_bitmap(parent_index, 1);        // Mark parent as allocated
-        set_bitmap(parent_index * 2, 0);    // Mark left child as free
-        set_bitmap(parent_index * 2 + 1, 0);// Mark right child as free
+        set_bitmap(parent_index, 1);         // Mark parent as allocated
+        set_bitmap(parent_index * 2, 0);     // Mark left child as free
+        set_bitmap(parent_index * 2 + 1, 0); // Mark right child as free
         index = parent_index;
     }
 }
@@ -118,16 +118,15 @@ void merge_buddy(int index)
         int buddy_index = (index % 2 == 0) ? index + 1 : index - 1;
         int parent_index = index / 2;
 
-        if (get_bitmap(buddy_index) == 1)  // If the buddy is allocated, stop merging
+        if (get_bitmap(buddy_index) == 1) // If the buddy is allocated, stop merging
         {
             break;
         }
 
-        set_bitmap(parent_index, 0);  // Mark parent as free
+        set_bitmap(parent_index, 0); // Mark parent as free
         index = parent_index;
     }
 }
-
 
 #ifdef DEBUG
 void check_block(int level, int firstIndex, int lastIndex, bool firstPrint, bool lastPrint)
@@ -211,12 +210,12 @@ void *buddy_alloc(size_t size)
 {
     int index = get_buddy_index(size);
     int free_index = find_free_buddy(index);
-    
+
     if (free_index == -1)
     {
         return NULL;
     }
-    
+
     split_buddy(free_index); // Split the block if necessary
     set_bitmap(free_index, 1);
     return buddy_memory + free_index * MIN_BLOCK_SIZE;
@@ -242,7 +241,7 @@ void *large_alloc(size_t size)
 // Custom malloc function
 void *pseudo_malloc(size_t size)
 {
-    if (size == 0) 
+    if (size == 0)
     {
         errno = EINVAL;
         return NULL;
@@ -299,8 +298,6 @@ int buddy_free(void *ptr)
     merge_buddy(index);
     return 0;
 }
-
-
 
 // Custom free function
 int pseudo_free(void *ptr)
