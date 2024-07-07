@@ -5,8 +5,10 @@ void *pseudo_malloc(size_t size);
 int pseudo_free(void *ptr);
 int init_buddy_allocator();
 int destroy_buddy_allocator();
-int print_buddy_allocator(void *ptr);
+int print_buddy_allocator();
 int get_bitmap(int index);
+void set_bitmap(int index, int value);
+void clear_bitmap();
 
 #define PAGE_SIZE 4096
 #define BUDDY_MEMORY_SIZE (1 << 20)     // 1 MB

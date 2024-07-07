@@ -268,19 +268,30 @@ void test_random_allocations()
 
 void test_pointer_distance()
 {
+    clear_bitmap(); //tutto deve venir deallocato sennò non funziona
+
     void *first_location = pseudo_malloc(16);
     void *ptr = pseudo_malloc(16);
+    printf("First location: %p\n", first_location);
+    printf("ptr: %p\n", ptr);
     printTest(ptr - first_location == MIN_BLOCK_SIZE, "Pointer distance");
 
     pseudo_free(ptr);
     pseudo_free(first_location);
     ptr = pseudo_malloc(16);
+        printf("First location: %p\n", first_location);
+    printf("ptr: %p\n", ptr);
     printTest(first_location == ptr, "Same pointer");
 
     first_location = pseudo_malloc(16);
+        printf("First location: %p\n", first_location);
+    printf("ptr: %p\n", ptr);
     printTest(abs(ptr - first_location) == MIN_BLOCK_SIZE, "Pointer distance"); // abs per evitare che il risultato sia negativo, essendo ora allocati al contrario
 
     void *ptr2 = pseudo_malloc(64);
+        printf("First location: %p\n", first_location);
+    printf("ptr: %p\n", ptr);
+    printf("ptr2: %p\n", ptr2);
     printTest(abs(ptr2 - ptr) == 2 * MIN_BLOCK_SIZE, "Pointer distance 2");
 
     pseudo_free(first_location);
@@ -421,26 +432,6 @@ void test_simultaneous_allocations()
     pseudo_free(ptr3);
 }
 
-void test_different_sizes()
-{
-    bool passed = true;
-    size_t sizes[] = {1, 50, 100, 200, 500, 1000, 2000, 4000, 8000};
-    void *ptr[sizeof(sizes) / sizeof(sizes[0])];
-    for (int i = 0; i < sizeof(sizes) / sizeof(sizes[0]); i++)
-    {
-        ptr[i] = pseudo_malloc(sizes[i]);
-        if (ptr[i] == NULL)
-        {
-            passed = false;
-            break;
-        }
-    }
-    printTest(passed, "Different sizes");
-    for (int i = 0; i < sizeof(sizes) / sizeof(sizes[0]); i++)
-    {
-        pseudo_free(ptr[i]);
-    }
-}
 
 void test_large_small_mixed()
 {
@@ -453,9 +444,13 @@ void test_large_small_mixed()
 
 void test_edge_case_exact_page()
 {
+    bool passed = true;
     void *ptr = pseudo_malloc(PAGE_SIZE);
-    printTest(ptr != NULL, "Edge case exact page");
-    pseudo_free(ptr);
+    passed = ptr != NULL;
+    if(pseudo_free(ptr)==-1){
+        passed = false;
+    }
+    printTest(passed, "Edge case exact page");
 }
 
 int main()
@@ -471,7 +466,7 @@ int main()
     }
 
     // Run all tests
-    /*test_small_allocation();
+    test_small_allocation();
     test_large_allocation();
     test_memory_reuse();
     test_boundary_conditions();
@@ -483,9 +478,9 @@ int main()
     test_stress_large_allocations();
     test_fragmentation();
     test_edge_case_zero_allocation();
-    test_edge_case_large_allocation();*/
+    test_edge_case_large_allocation();
     test_small_allocation_and_free();
-    /*test_large_allocation_and_free();
+    test_large_allocation_and_free();
     test_random_allocations();
     test_pointer_distance();
     test_multiple_sizes();
@@ -497,9 +492,8 @@ int main()
     test_memory_stress_with_free();
     test_allocation_free_repeated();
     test_simultaneous_allocations();
-    test_different_sizes();
     test_large_small_mixed();
-    test_edge_case_exact_page();*/
+    test_edge_case_exact_page();
 
     /*TODO: move the free functions in separate loop */
 

@@ -1,6 +1,5 @@
 CC = gcc
-CFLAGS = -g
-
+CFLAGS = -std=gnu99 -g -m32 -Ofast -Wall -Wextra
 
 all: test
 
