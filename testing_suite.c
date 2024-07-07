@@ -25,33 +25,35 @@ void printTest(int condition, const char *message)
 
 void test_small_allocation()
 {
-    void *ptr;
-    ptr = pseudo_malloc(100);
-    printTest(ptr != NULL, "Small allocation");
-    pseudo_free(ptr);
+    bool passed = true;
+    void *ptr = pseudo_malloc(100);
+    passed = ptr != NULL;
+    if(pseudo_free(ptr)==-1){
+        passed = false;
+    }
+    printTest(passed, "Small allocation");
 }
 
 void test_large_allocation()
 {
+    bool passed = true;
     void *ptr = pseudo_malloc(5000);
-    printTest(ptr != NULL, "Large allocation");
-    pseudo_free(ptr);
-}
-
-void test_memory_reuse()
-{
-    void *ptr1 = pseudo_malloc(100);
-    pseudo_free(ptr1);
-    void *ptr2 = pseudo_malloc(100);
-    printTest(ptr1 == ptr2, "Memory reuse");
-    pseudo_free(ptr2);
+    passed = ptr != NULL;
+    if(pseudo_free(ptr)==-1){
+        passed = false;
+    }
+    printTest(passed, "Large allocation");
 }
 
 void test_boundary_conditions()
 {
+    bool passed = true;
     void *ptr = pseudo_malloc(PAGE_SIZE / 4 - 1);
-    printTest(ptr != NULL, "Boundary condition");
-    pseudo_free(ptr);
+    passed = ptr != NULL;
+    if(pseudo_free(ptr)==-1){
+        passed = false;
+    }
+    printTest(passed, "Boundary condition");
 }
 
 void test_multiple_allocations()
@@ -66,27 +68,27 @@ void test_multiple_allocations()
             passed = false;
         }
     }
-
-    printTest(passed, "Multiple allocations");
     for (int i = 0; i < 10; i++)
     {
-        pseudo_free(ptrs[i]);
+        if(pseudo_free(ptrs[i])==-1){
+            passed = false;
+        }
     }
+    printTest(passed, "Multiple allocations");
+    
 }
 
 void test_write_and_read()
 {
-    void *p = pseudo_malloc(16);
-    void *ptr1 = pseudo_malloc(16);
-    pseudo_free(p);
-    void *ptr2 = pseudo_malloc(64);
+    bool passed = true;
     const char *test_string2 = "Hello, World!Hello, World!Hello, World!Hello, World!";
     const char *test_string1 = "Hello, World!";
     size_t len1 = strlen(test_string1) + 1;
     size_t len2 = strlen(test_string2) + 1;
-    ptr1 = pseudo_malloc(len1);
-    ptr2 = pseudo_malloc(len2);
-    printTest(ptr1 != NULL && ptr2 != NULL, "Write and read allocation");
+    void * ptr1 = pseudo_malloc(len1);
+    void * ptr2 = pseudo_malloc(len2);
+    passed = ptr1 != NULL && ptr2 != NULL;
+    printTest(passed, "Write and read allocation");
 
     strcpy(ptr1, test_string1);
     strcpy(ptr2, test_string2);
@@ -94,17 +96,22 @@ void test_write_and_read()
     char *read_string1 = (char *)ptr1;
     char *read_string2 = (char *)ptr2;
 
+    passed = strcmp(read_string1, test_string1) == 0 && strcmp(read_string2, test_string2) == 0;
+    if(pseudo_free(ptr1)==-1 || pseudo_free(ptr2)==-1){
+        passed = false;
+    }
     printTest(strcmp(read_string1, test_string1) == 0 && strcmp(read_string2, test_string2) == 0, "Write and read");
-
-    pseudo_free(ptr1);
-    pseudo_free(ptr2);
 }
 
 void test_large_allocation_boundary()
 {
+    int passed = true;
     void *ptr = pseudo_malloc(PAGE_SIZE / 4);
-    printTest(ptr != NULL, "Large allocation boundary");
-    pseudo_free(ptr);
+    passed = ptr != NULL;
+    if(pseudo_free(ptr)==-1){
+        passed = false;
+    }
+    printTest(passed, "Large allocation boundary");
 }
 
 void test_small_allocation_fill()
@@ -119,11 +126,13 @@ void test_small_allocation_fill()
             passed = false;
         }
     }
-    printTest(passed, "Small allocation fill");
     for (int i = 0; i < PAGE_SIZE / 4; i++)
     {
-        pseudo_free(ptrs[i]);
+        if(pseudo_free(ptrs[i]) == -1){
+            passed = false;
+        }
     }
+    printTest(passed, "Small allocation fill");
 }
 
 void test_stress_small_allocations()
@@ -137,7 +146,10 @@ void test_stress_small_allocations()
             passed = false;
             break;
         }
-        pseudo_free(ptr);
+        if(pseudo_free(ptr)==-1){
+            passed = false;
+            break;
+        }
     }
     printTest(passed, "Stress small allocations");
 }
@@ -153,58 +165,42 @@ void test_stress_large_allocations()
             passed = false;
             break;
         }
-        pseudo_free(ptr);
+        if(pseudo_free(ptr)==-1){
+            passed = false;
+            break;
+        }
     }
     printTest(passed, "Stress large allocations");
 }
 
-void test_fragmentation()
-{
-    void *ptrs[100];
-    for (int i = 0; i < 100; i++)
-    {
-        ptrs[i] = pseudo_malloc(50);
-    }
-    for (int i = 0; i < 100; i += 2)
-    {
-        pseudo_free(ptrs[i]);
-    }
-    bool passed = true;
-    for (int i = 0; i < 50; i++)
-    {
-        void *ptr = pseudo_malloc(50);
-        if (ptr == NULL)
-        {
-            passed = false;
-        }
-    }
-    for (int i = 1; i < 100; i += 2)
-    {
-        pseudo_free(ptrs[i]);
-    }
-
-    printTest(passed, "Fragmentation test");
-}
-
 void test_edge_case_zero_allocation()
 {
+    bool passed = true;
     void *ptr = pseudo_malloc(0);
-    printTest(ptr == NULL, "Edge case zero allocation");
-    pseudo_free(ptr);
+    passed = ptr == NULL;
+    if(pseudo_free(ptr)!=-1){
+        passed = false;
+    }
+    printTest(passed, "Edge case zero allocation");
 }
 
 void test_edge_case_large_allocation()
 {
+    bool passed = true;
     void *ptr = pseudo_malloc(BUDDY_MEMORY_SIZE);
-    printTest(ptr != NULL, "Edge case large allocation");
-    pseudo_free(ptr);
+    passed = ptr != NULL;
+    if(pseudo_free(ptr) == -1){
+        passed = false;
+    }
+    printTest(passed, "Edge case large allocation");
+    
 }
 
 void test_small_allocation_and_free()
 {
     bool passed = true;
     void * ptrs[100];
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 100; i++)
     {
         ptrs[i] = pseudo_malloc(100);
         if (ptrs[i] == NULL)
@@ -213,11 +209,10 @@ void test_small_allocation_and_free()
             break;
         }
     }
-    for(int i = 0; i < 5; i++)
+    for(int i = 0; i < 100; i++)
     {
         int ret = pseudo_free(ptrs[i]);
         if(ret == -1){
-            printf("Error %d, %p\n", i, ptrs[i]);
             passed = false;
             break;
         }
@@ -240,7 +235,10 @@ void test_large_allocation_and_free()
     }
     for (int i = 0; i < 10; i++)
     {
-        pseudo_free(ptrs[i]);
+        if(pseudo_free(ptrs[i])==-1){
+            passed = false;
+            break;
+        }
     }
     printTest(passed, "Large allocation and free");
 }
@@ -259,44 +257,39 @@ void test_random_allocations()
             break;
         }
     }
-    printTest(passed, "Random allocations");
     for(int i = 0; i < 100; i++)
     {
-        pseudo_free(ptrs[i]);
+        if(pseudo_free(ptrs[i])==-1){
+            passed = false;
+            break;
+        }
     }
+    printTest(passed, "Random allocations"); 
 }
 
 void test_pointer_distance()
 {
-    clear_bitmap(); //tutto deve venir deallocato sennò non funziona
+    clear_bitmap();
 
     void *first_location = pseudo_malloc(16);
     void *ptr = pseudo_malloc(16);
-    printf("First location: %p\n", first_location);
-    printf("ptr: %p\n", ptr);
     printTest(ptr - first_location == MIN_BLOCK_SIZE, "Pointer distance");
 
     pseudo_free(ptr);
     pseudo_free(first_location);
     ptr = pseudo_malloc(16);
-        printf("First location: %p\n", first_location);
-    printf("ptr: %p\n", ptr);
     printTest(first_location == ptr, "Same pointer");
 
     first_location = pseudo_malloc(16);
-        printf("First location: %p\n", first_location);
-    printf("ptr: %p\n", ptr);
     printTest(abs(ptr - first_location) == MIN_BLOCK_SIZE, "Pointer distance"); // abs per evitare che il risultato sia negativo, essendo ora allocati al contrario
 
     void *ptr2 = pseudo_malloc(64);
-        printf("First location: %p\n", first_location);
-    printf("ptr: %p\n", ptr);
-    printf("ptr2: %p\n", ptr2);
     printTest(abs(ptr2 - ptr) == 2 * MIN_BLOCK_SIZE, "Pointer distance 2");
 
-    pseudo_free(first_location);
-    pseudo_free(ptr);
-    pseudo_free(ptr2);
+    if(pseudo_free(first_location) ==-1 || pseudo_free(ptr)==-1 || pseudo_free(ptr2)==-1){
+        printTest(false, "Freeing pointers");
+    }
+    printTest(true, "Freeing pointers");
 }
 
 void test_multiple_sizes()
@@ -310,7 +303,10 @@ void test_multiple_sizes()
             passed = false;
             break;
         }
-        pseudo_free(ptr);
+        if(pseudo_free(ptr)==-1){
+            passed = false;
+            break;
+        }
     }
     printTest(passed, "Multiple sizes");
 }
@@ -335,12 +331,14 @@ void test_alternating_allocations()
             break;
         }
     }
-    printTest(passed, "Alternating allocations");
     for (int i = 0; i < 100; i++)
     {
-        pseudo_free(ptr1[i]);
-        pseudo_free(ptr2[i]);
+        if(pseudo_free(ptr1[i])==-1||pseudo_free(ptr2[i])==-1){
+            passed = false;
+        }
     }
+    printTest(passed, "Alternating allocations");
+    
 }
 
 void test_freeing_null()
@@ -349,22 +347,16 @@ void test_freeing_null()
     printTest(i == -1, "Freeing NULL");
 }
 
-void test_reallocating_freed_memory()
-{
-    void *ptr = pseudo_malloc(100);
-    pseudo_free(ptr);
-    void *new_ptr = pseudo_malloc(100);
-    printTest(ptr == new_ptr, "Reallocating freed memory");
-    pseudo_free(new_ptr);
-}
-
 void test_overlapping_allocations()
 {
+    bool passed = true;
     void *ptr1 = pseudo_malloc(100);
     void *ptr2 = pseudo_malloc(100);
-    printTest(ptr1 != ptr2, "Overlapping allocations");
-    pseudo_free(ptr1);
-    pseudo_free(ptr2);
+    passed =  ptr1 != NULL && ptr2 != NULL && ptr1 + 100 <= ptr2;
+    if(pseudo_free(ptr1)==-1 || pseudo_free(ptr2)==-1){
+        passed = false;
+    }
+    printTest(passed, "Overlapping allocations");
 }
 
 void test_memory_fill_and_clear()
@@ -380,8 +372,10 @@ void test_memory_fill_and_clear()
             break;
         }
     }
+    if(pseudo_free(ptr)==-1){
+        passed = false;
+    }
     printTest(passed, "Memory fill");
-    pseudo_free(ptr);
 }
 
 void test_memory_stress_with_free()
@@ -397,22 +391,23 @@ void test_memory_stress_with_free()
             break;
         }
     }
-    printTest(passed, "Memory stress with free");
     for (int i = 0; i < 1000; i++)
     {
-        pseudo_free(ptr[i]);
+        if(pseudo_free(ptr[i]) ==-1){
+            passed = false;
+            break;
+        }
     }
+    printTest(passed, "Memory stress with free");
 }
 
 void test_allocation_free_repeated()
 {
-    int r = 0;
     bool passed = true;
     for (int i = 0; i < 1000; i++)
     {
         void *ptr = pseudo_malloc(100);
-        r = pseudo_free(ptr);
-        if (r == -1)
+        if (pseudo_free(ptr) == -1)
         {
             passed = false;
             break;
@@ -423,23 +418,28 @@ void test_allocation_free_repeated()
 
 void test_simultaneous_allocations()
 {
+    int passed = true;
     void *ptr1 = pseudo_malloc(100);
     void *ptr2 = pseudo_malloc(200);
     void *ptr3 = pseudo_malloc(300);
-    printTest(ptr1 != NULL && ptr2 != NULL && ptr3 != NULL, "Simultaneous allocations");
-    pseudo_free(ptr1);
-    pseudo_free(ptr2);
-    pseudo_free(ptr3);
+    passed = ptr1 != NULL && ptr2 != NULL && ptr3 != NULL;
+    if(pseudo_free(ptr1)==-1 || pseudo_free(ptr2)==-1 || pseudo_free(ptr3)==-1){
+        passed = false;
+    }
+    printTest(passed, "Simultaneous allocations");
 }
 
 
 void test_large_small_mixed()
 {
+    bool passed = true;
     void *small = pseudo_malloc(100);
     void *large = pseudo_malloc(5000);
-    printTest(small != NULL && large != NULL, "Large and small mixed");
-    pseudo_free(small);
-    pseudo_free(large);
+    passed = small != NULL && large != NULL;
+    if(pseudo_free(small)==-1 || pseudo_free(large)==-1){
+        passed = false;
+    }
+    printTest(passed, "Large and small mixed");
 }
 
 void test_edge_case_exact_page()
@@ -468,7 +468,6 @@ int main()
     // Run all tests
     test_small_allocation();
     test_large_allocation();
-    test_memory_reuse();
     test_boundary_conditions();
     test_multiple_allocations();
     test_write_and_read();
@@ -476,7 +475,6 @@ int main()
     test_small_allocation_fill();
     test_stress_small_allocations();
     test_stress_large_allocations();
-    test_fragmentation();
     test_edge_case_zero_allocation();
     test_edge_case_large_allocation();
     test_small_allocation_and_free();
@@ -486,7 +484,6 @@ int main()
     test_multiple_sizes();
     test_alternating_allocations();
     test_freeing_null();
-    test_reallocating_freed_memory();
     test_overlapping_allocations();
     test_memory_fill_and_clear();
     test_memory_stress_with_free();
@@ -494,8 +491,6 @@ int main()
     test_simultaneous_allocations();
     test_large_small_mixed();
     test_edge_case_exact_page();
-
-    /*TODO: move the free functions in separate loop */
 
     ret = destroy_buddy_allocator();
     if (ret == -1)

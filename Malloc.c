@@ -197,8 +197,7 @@ int print_buddy_allocator()
     printf("[#] = Pointer Free\n");
     printf("[-] = Pointer partially Occupied\n");
     printf("[^] = Pointer completely Occupied\n");
-
-
+    printf("\n");
     check_block(0, 0, sizeof(buddy_bitmap), true, true);
     printf("\n");
     return 1;
@@ -250,8 +249,6 @@ void *pseudo_malloc(size_t size)
     }
     else if (size < PAGE_SIZE / 4)
     {
-        size = (size + MIN_BLOCK_SIZE - 1) & ~(MIN_BLOCK_SIZE - 1); // Align size to minimum block size
-        // Determines the appropriate index in the buddy system for the requested size
         int index = get_buddy_index(size);
         int free_index = find_free_buddy(index);
         if (free_index == -1)
