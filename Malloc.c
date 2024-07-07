@@ -7,6 +7,8 @@
 #include <sys/mman.h>
 #include <errno.h>
 
+#define DEBUG
+
 
 // An array of bytes used as a bitmap to track the allocation status of each block of memory.
 static unsigned char buddy_bitmap[BUDDY_MEMORY_SIZE / MIN_BLOCK_SIZE / 8];
@@ -177,6 +179,7 @@ void check_block(int level, int firstIndex, int lastIndex, bool firstPrint, bool
     printf("}");
 }
 
+#ifdef DEBUG
 // Function to print the buddy allocator
 int print_buddy_allocator(void *ptr)
 {
@@ -213,6 +216,7 @@ int print_buddy_allocator(void *ptr)
     printf("\n");
     return 1;
 }
+#endif
 
 /* MALLOC FUNCTIONS*/
 
@@ -288,38 +292,47 @@ int large_free(void *ptr)
         errno = EINVAL;
         return -1;
     }
+    return 1;
 }
 
 // Buddy free function
 int buddy_free(void *ptr)
 {
-    if (is_bitmap_full())
+    
+    // Calculate the index of the block in the buddy system
+    int index = (ptr - buddy_memory) / MIN_BLOCK_SIZE;
+    if (get_buddy_bitmap(index) == 0)
     {
         errno = EINVAL;
         return -1;
     }
-    // Calculate the index of the block in the buddy system
-    int index = (ptr - buddy_memory) / MIN_BLOCK_SIZE;
     set_buddy_bitmap(index, 0);
     merge_buddy(index);
+
+    return 1;
 }
 
 // Custom free function
 int pseudo_free(void *ptr)
 {
+    int ret = 1;
     if (ptr == NULL)
     {
         return -1;
     }
     if (ptr >= buddy_memory && ptr < buddy_memory + BUDDY_MEMORY_SIZE)
     {
-        buddy_free(ptr);
+        if(buddy_free(ptr)==-1){
+            ret = -1;
+        }
     }
     else
     {
-        large_free(ptr);
+        if(large_free(ptr) == -1){
+            ret = -1;
+        }
     }
-    return 1;
+    return ret;
 }
 
 /*BUDDY_MEMORY*/

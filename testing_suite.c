@@ -27,10 +27,8 @@ void printTest(int condition, const char *message)
 void test_small_allocation()
 {
     void *ptr;
-    int i = print_buddy_allocator(ptr);
     ptr = pseudo_malloc(100);
     printTest(ptr != NULL, "Small allocation");
-    i = print_buddy_allocator(ptr);
     pseudo_free(ptr);
 }
 
@@ -46,6 +44,7 @@ void test_memory_reuse()
     void *ptr1 = pseudo_malloc(100);
     pseudo_free(ptr1);
     void *ptr2 = pseudo_malloc(100);
+    printf("ptr1: %p, ptr2: %p\n", ptr1, ptr2);
     printTest(ptr1 == ptr2, "Memory reuse");
     pseudo_free(ptr2);
 }
@@ -83,7 +82,6 @@ void test_write_and_read()
     void *ptr1 = pseudo_malloc(16);
     pseudo_free(p);
     void *ptr2 = pseudo_malloc(64);
-    printf("ptr1: %d, ptr2: %d\n", ptr1, ptr2);
     const char *test_string2 = "Hello, World!Hello, World!Hello, World!Hello, World!";
     const char *test_string1 = "Hello, World!";
     size_t len1 = strlen(test_string1) + 1;
@@ -97,9 +95,6 @@ void test_write_and_read()
 
     char *read_string1 = (char *)ptr1;
     char *read_string2 = (char *)ptr2;
-
-    printf("read_string1: %s\n", read_string1);
-    printf("read_string2: %s\n", read_string2);
 
     printTest(strcmp(read_string1, test_string1) == 0 && strcmp(read_string2, test_string2) == 0, "Write and read");
 
@@ -260,21 +255,21 @@ void test_random_allocations()
 void test_pointer_distance() {
     void *first_location = pseudo_malloc(16);
     void * ptr = pseudo_malloc(16);
-    printf("ptr: %p, first_location: %p\n", ptr, first_location);
+    //printf("ptr: %p, first_location: %p\n", ptr, first_location);
     printTest(ptr - first_location == MIN_BLOCK_SIZE, "Pointer distance");
 
     pseudo_free(ptr);
     pseudo_free(first_location);
     ptr = pseudo_malloc(16);
-    printf("ptr: %p, first_location: %p\n", ptr, first_location);
+    //printf("ptr: %p, first_location: %p\n", ptr, first_location);
     printTest(first_location == ptr, "Same pointer");
 
     first_location = pseudo_malloc(16);
-    printf("ptr: %p, first_location: %p\n", ptr, first_location);
+    //printf("ptr: %p, first_location: %p\n", ptr, first_location);
     printTest(abs(ptr - first_location) == MIN_BLOCK_SIZE, "Pointer distance"); //abs per evitare che il risultato sia negativo, essendo ora allocati al contrario
 
     void* ptr2 = pseudo_malloc(64);
-    printf("ptr2: %p, ptr: %p\n", ptr2, ptr);
+    //printf("ptr2: %p, ptr: %p\n", ptr2, ptr);
     printTest(abs(ptr2 - ptr) == 2*MIN_BLOCK_SIZE, "Pointer distance 2");
 
 
@@ -284,6 +279,142 @@ void test_pointer_distance() {
     pseudo_free(ptr2);
 }
 
+void test_multiple_sizes() {
+    bool passed = true;
+    for (size_t size = 1; size <= PAGE_SIZE; size *= 2) {
+        void *ptr = pseudo_malloc(size);
+        if(ptr == NULL) {
+            passed = false;
+            break;
+        }
+        pseudo_free(ptr);
+    }
+    printTest(passed, "Multiple sizes");
+}
+
+void test_alternating_allocations() {
+    bool passed = true;
+    for (int i = 0; i < 100; i++) {
+        void *ptr1 = pseudo_malloc(100);
+        if (ptr1 == NULL) {
+            passed = false;
+            printTest(passed, "Alternating allocations small");
+            pseudo_free(ptr1);
+            break;
+        }
+        pseudo_free(ptr1);
+        void *ptr2 = pseudo_malloc(5000);
+        if (ptr2 == NULL) {
+            passed = false;
+            printTest(passed, "Alternating allocations large");
+            pseudo_free(ptr2);
+            break;
+        }
+        pseudo_free(ptr2);
+    }
+    printTest(passed, "Alternating allocations");
+}
+
+void test_freeing_null() {
+    int i = pseudo_free(NULL);
+    printTest(i == -1, "Freeing NULL");
+}
+
+void test_reallocating_freed_memory() {
+    void *ptr = pseudo_malloc(100);
+    pseudo_free(ptr);
+    void *new_ptr = pseudo_malloc(100);
+    printTest(ptr == new_ptr, "Reallocating freed memory");
+    pseudo_free(new_ptr);
+}
+
+void test_overlapping_allocations() {
+    void *ptr1 = pseudo_malloc(100);
+    void *ptr2 = pseudo_malloc(100);
+    printTest(ptr1 != ptr2, "Overlapping allocations");
+    pseudo_free(ptr1);
+    pseudo_free(ptr2);
+}
+
+void test_memory_fill_and_clear() {
+    void *ptr = pseudo_malloc(PAGE_SIZE);
+    memset(ptr, 0xAA, PAGE_SIZE);
+    bool passed = true;
+    for (size_t i = 0; i < PAGE_SIZE; i++) {
+        if (((unsigned char*)ptr)[i] != 0xAA) {
+            passed = false;
+            break;
+        }
+    }
+    printTest(passed, "Memory fill");
+    pseudo_free(ptr);
+}
+
+void test_memory_stress_with_free() {
+    bool passed = true;
+    for (int i = 0; i < 1000; i++) {
+        void *ptr = pseudo_malloc(100);
+        if (ptr == NULL) {
+            passed = false;
+            break;
+        }
+        pseudo_free(ptr);
+    }
+    printTest(passed, "Memory stress with free");
+}
+
+void test_allocation_free_repeated() {
+    int r = 0;
+    bool passed = true;
+    for (int i = 0; i < 1000; i++) {
+        void *ptr = pseudo_malloc(100);
+        r = pseudo_free(ptr);
+        if (r == -1) {
+            passed = false;
+            break;
+        }
+    }
+    printTest(passed, "Allocation and free repeated");
+}
+
+void test_simultaneous_allocations() {
+    void *ptr1 = pseudo_malloc(100);
+    void *ptr2 = pseudo_malloc(200);
+    void *ptr3 = pseudo_malloc(300);
+    printTest(ptr1 != NULL && ptr2 != NULL && ptr3 != NULL, "Simultaneous allocations");
+    pseudo_free(ptr1);
+    pseudo_free(ptr2);
+    pseudo_free(ptr3);
+}
+
+void test_different_sizes() {
+    bool passed = true;
+    size_t sizes[] = {1, 50, 100, 200, 500, 1000, 2000, 4000, 8000};
+    /*TO DO: Control*/
+    for (int i = 0; i < sizeof(sizes) / sizeof(sizes[0]); i++) {
+        void *ptr = pseudo_malloc(sizes[i]);
+        if (ptr == NULL) {
+            passed = false;
+            break;
+        }
+        pseudo_free(ptr);
+    }
+    printTest(passed, "Different sizes");
+}
+
+void test_large_small_mixed() {
+    void *small = pseudo_malloc(100);
+    void *large = pseudo_malloc(5000);
+    printTest(small != NULL && large != NULL, "Large and small mixed");
+    pseudo_free(small);
+    pseudo_free(large);
+}
+
+void test_edge_case_exact_page() {
+    void *ptr = pseudo_malloc(PAGE_SIZE);
+    printTest(ptr != NULL, "Edge case exact page");
+    pseudo_free(ptr);
+}
 
 int main()
 {
@@ -315,6 +446,19 @@ int main()
     test_large_allocation_and_free();
     test_random_allocations();
     test_pointer_distance();
+    test_multiple_sizes();
+    test_alternating_allocations();
+    test_freeing_null();
+    test_reallocating_freed_memory();
+    test_overlapping_allocations();
+    test_memory_fill_and_clear();
+    test_memory_stress_with_free();
+    test_allocation_free_repeated();
+    test_simultaneous_allocations();
+    test_different_sizes();
+    test_large_small_mixed();
+    test_edge_case_exact_page();
+
     /*TODO: Add test with write and read from a file*/
     /*TODO: move the free functions in separate loop */
 
