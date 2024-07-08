@@ -5,6 +5,8 @@
 #include "Stack.h"
 #include "Malloc.h"
 
+#define DEBUG
+
 typedef struct Node {
     int data;
     struct Node* next;
@@ -77,6 +79,8 @@ int getElement(Stack stack, int index) {
     }
     return -1;
 }
+
+#ifdef DEBUG
 // Function to print the elements of the linked list
 void printStack(Stack stack) {
     struct Node* current = *stack;
@@ -86,6 +90,7 @@ void printStack(Stack stack) {
     }
     printf("\n");
 }
+#endif
 
 // Function to remove the first node from the linked list
 int pop(Stack stack) {

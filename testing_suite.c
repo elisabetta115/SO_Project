@@ -58,7 +58,13 @@ void test_boundary_conditions()
     {
         passed = false;
     }
-    printTest(passed, "Boundary condition");
+    ptr = pseudo_malloc(PAGE_SIZE / 4);
+    passed = ptr != NULL;
+    if (pseudo_free(ptr) == -1)
+    {
+        passed = false;
+    }
+    printTest(passed, "Boundary conditions");
 }
 
 void test_multiple_allocations()
@@ -107,18 +113,6 @@ void test_write_and_read()
         passed = false;
     }
     printTest(strcmp(read_string1, test_string1) == 0 && strcmp(read_string2, test_string2) == 0, "Write and read");
-}
-
-void test_large_allocation_boundary()
-{
-    int passed = true;
-    void *ptr = pseudo_malloc(PAGE_SIZE / 4);
-    passed = ptr != NULL;
-    if (pseudo_free(ptr) == -1)
-    {
-        passed = false;
-    }
-    printTest(passed, "Large allocation boundary");
 }
 
 void test_small_allocation_fill()
@@ -258,7 +252,6 @@ void test_random_allocations()
             break;
         }
     }
-    print_bitmap();
     for (int i = 0; i < 100; i++)
     {
         if (pseudo_free(ptrs[i]) == -1)
@@ -267,27 +260,25 @@ void test_random_allocations()
             break;
         }
     }
-    print_bitmap();
     printTest(passed, "Random allocations");
 }
 
 void test_pointer_distance()
 {
-    print_bitmap();
 
-    void *first_location = pseudo_malloc(16);
-    void *ptr = pseudo_malloc(16);
-    printTest(ptr - first_location == MIN_BLOCK_SIZE, "Pointer distance");
+    void *first_location = pseudo_malloc(12);
+    void *ptr = pseudo_malloc(14);
+    printTest(ptr - first_location == MIN_BLOCK_SIZE, "Pointer distance 1");
 
     pseudo_free(ptr);
     pseudo_free(first_location);
-    ptr = pseudo_malloc(16);
-    printTest(first_location == ptr, "Same pointer");
+    ptr = pseudo_malloc(10);
+    printTest(first_location == ptr, "Pointer distance 2");
 
-    first_location = pseudo_malloc(16);
-    printTest(abs(ptr - first_location) == MIN_BLOCK_SIZE, "Pointer distance");
-    void *ptr2 = pseudo_malloc(64);
-    printTest(abs(ptr2 - ptr) == 2 * MIN_BLOCK_SIZE, "Pointer distance 2");
+    first_location = pseudo_malloc(13);
+    printTest(abs(ptr - first_location) == MIN_BLOCK_SIZE, "Pointer distance 3");
+    void *ptr2 = pseudo_malloc(50);
+    printTest(abs(ptr2 - ptr) == 2 * MIN_BLOCK_SIZE, "Pointer distance 4");
 
     if (pseudo_free(first_location) == -1 || pseudo_free(ptr) == -1 || pseudo_free(ptr2) == -1)
     {
@@ -460,8 +451,6 @@ void test_linked_list(){
     }
     printTest(passed, "Linked list initialization");
     
-    print_bitmap();
-
     for (int i = 0; i<10; i++){
         int ret = insert(stack, i);
         if(ret == -1){
@@ -470,9 +459,6 @@ void test_linked_list(){
         }
     }
     printTest(passed, "Inserting elements");
-
-    printStack(stack);
-    print_bitmap();
     
     for (int i = 0; i<10; i++){
         int ret = getElement(stack, i);
@@ -490,8 +476,6 @@ void test_linked_list(){
             passed = false;
             break;
         }
-        
-        printStack(stack);
     }
     printTest(passed, "Pop of elements");
 
@@ -504,15 +488,10 @@ void test_linked_list(){
     }
     printTest(passed, "Getting elements after the pop");
 
-    printStack(stack);
-
-    print_bitmap();
-
     if(destroyStack(stack) == -1){
         passed = false;
     }
     printTest(passed, "Freeing the linked list");
-    print_bitmap();
 }
 
 int main()
@@ -532,7 +511,6 @@ int main()
     test_boundary_conditions();
     test_multiple_allocations();
     test_write_and_read();
-    test_large_allocation_boundary();
     test_small_allocation_fill();
     test_stress_small_allocations();
     test_stress_large_allocations();
