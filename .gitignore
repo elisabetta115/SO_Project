@@ -1,4 +1,6 @@
 .vscode
 malloc.o
 testing_suite.o
+test.o
+stack.o
 test
