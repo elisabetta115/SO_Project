@@ -289,6 +289,7 @@ int large_free(void *ptr)
 int buddy_free(void *ptr)
 {
     int index = (ptr - buddy_memory) / MIN_BLOCK_SIZE;
+    printf("Index: %d\n", index);
     if (get_bitmap(index) == 0)
     {
         errno = EINVAL;

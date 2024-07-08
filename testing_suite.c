@@ -450,21 +450,69 @@ void test_edge_case_exact_page()
 }
 
 void test_linked_list(){
-    Node** head = initializeList();
-    for (int i = 0; i<10; i++){
-        insert(head, i);
+    bool passed = true;
+
+    Stack stack = initializeStack();
+    if (stack == NULL){
+        passed = false;
+        printTest(passed, "Linked list initialization");
+        return;
     }
-    print_struct(*head);
+    printTest(passed, "Linked list initialization");
+    
+    print_bitmap();
+
+    for (int i = 0; i<10; i++){
+        int ret = insert(stack, i);
+        if(ret == -1){
+            passed = false;
+            break;
+        }
+    }
+    printTest(passed, "Inserting elements");
+
+    printStack(stack);
+    print_bitmap();
+    
+    for (int i = 0; i<10; i++){
+        int ret = getElement(stack, i);
+        if(ret != 10-i-1 || ret == -1){
+            passed = false;
+            break;
+        }
+    }
+    printTest(passed, "Getting elements after the insert");
+    
 
     for (int i = 0;i<5;i++){
-        pop(head);
-        print_struct(*head);
+        int ret = pop(stack);
+        if(ret ==-1){
+            passed = false;
+            break;
+        }
+        
+        printStack(stack);
     }
+    printTest(passed, "Pop of elements");
 
-    print_struct(*head);
+    for (int i = 0; i<5; i++){
+        int ret = getElement(stack, i);
+        if(ret != 5-i-1 || ret == -1){
+            passed = false;
+            break;
+        }
+    }
+    printTest(passed, "Getting elements after the pop");
 
-    freeHead(head);
+    printStack(stack);
 
+    print_bitmap();
+
+    if(destroyStack(stack) == -1){
+        passed = false;
+    }
+    printTest(passed, "Freeing the linked list");
+    print_bitmap();
 }
 
 int main()
