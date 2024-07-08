@@ -1,4 +1,3 @@
-#include "malloc.h"
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,6 +5,8 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <errno.h>
+
+#include "Malloc.h"
 
 #define DEBUG
 
@@ -293,7 +294,6 @@ int buddy_free(void *ptr)
         errno = EINVAL;
         return -1;
     }
-
     set_bitmap(index, 0);
     merge_buddy(index);
     return 0;

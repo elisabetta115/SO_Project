@@ -1,10 +1,12 @@
-#include "malloc.h"
 #include <stdio.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <time.h>
 #include <assert.h>
 #include <stdlib.h>
+
+#include "Malloc.h"
+#include "Stack.h"
 
 int testsRun = 0;
 int testsPassed = 0;
@@ -447,6 +449,24 @@ void test_edge_case_exact_page()
     printTest(passed, "Edge case exact page");
 }
 
+void test_linked_list(){
+    Node** head = initializeList();
+    for (int i = 0; i<10; i++){
+        insert(head, i);
+    }
+    print_struct(*head);
+
+    for (int i = 0;i<5;i++){
+        pop(head);
+        print_struct(*head);
+    }
+
+    print_struct(*head);
+
+    freeHead(head);
+
+}
+
 int main()
 {
     printf("Starting testing...\n\n\n");
@@ -482,6 +502,9 @@ int main()
     test_allocation_free_repeated();
     test_large_small_mixed();
     test_edge_case_exact_page();
+    test_linked_list();
+
+    
 
     ret = destroy_buddy_allocator();
     if (ret == -1)
@@ -490,6 +513,7 @@ int main()
         return -1;
     }
 
+    
     clock_t endingTime = clock();
 
     printf("\n\nTotal tests ran:\t%d\n", testsRun);
