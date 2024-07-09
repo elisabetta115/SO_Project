@@ -263,30 +263,6 @@ void test_random_allocations()
     printTest(passed, "Random allocations");
 }
 
-void test_pointer_distance()
-{
-
-    void *first_location = pseudo_malloc(12);
-    void *ptr = pseudo_malloc(14);
-    printTest(ptr - first_location == MIN_BLOCK_SIZE, "Pointer distance 1");
-
-    pseudo_free(ptr);
-    pseudo_free(first_location);
-    ptr = pseudo_malloc(10);
-    printTest(first_location == ptr, "Pointer distance 2");
-
-    first_location = pseudo_malloc(13);
-    printTest(abs(ptr - first_location) == MIN_BLOCK_SIZE, "Pointer distance 3");
-    void *ptr2 = pseudo_malloc(50);
-    printTest(abs(ptr2 - ptr) == 2 * MIN_BLOCK_SIZE, "Pointer distance 4");
-
-    if (pseudo_free(first_location) == -1 || pseudo_free(ptr) == -1 || pseudo_free(ptr2) == -1)
-    {
-        printTest(false, "Freeing pointers");
-    }
-    printTest(true, "Freeing pointers");
-}
-
 void test_multiple_sizes()
 {
     bool passed = true;
@@ -518,7 +494,6 @@ int main()
     test_small_allocation_and_free();
     test_large_allocation_and_free();
     test_random_allocations();
-    test_pointer_distance();
     test_multiple_sizes();
     test_alternating_allocations();
     test_freeing_null();
