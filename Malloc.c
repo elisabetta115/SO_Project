@@ -202,29 +202,38 @@ int buddy_free(void *ptr)
     return 0;
 }
 
-// Custom free function
-int pseudo_free(void *ptr)
+int buddy_free(void *ptr)
 {
-    int ret = 1;
-    if (ptr == NULL)
+    int index = (ptr - buddy_memory) / MIN_BLOCK_SIZE;
+
+    if (get_bitmap(index) == 0)
     {
+        errno = EINVAL;
         return -1;
     }
-    if (ptr >= buddy_memory && ptr <= (buddy_memory + BUDDY_MEMORY_SIZE))
+
+    set_bitmap(index, 0); // Mark the block as free
+
+    // Coalesce free blocks
+    int buddy_index, parent_index;
+    while (index > 0)
     {
-        if (buddy_free(ptr) == -1)
+        buddy_index = index % 2 == 0 ? index + 1 : index - 1;
+
+        // If the buddy block is also free
+        if (get_bitmap(buddy_index) == 0)
         {
-            ret = -1;
+            parent_index = index / 2;
+            set_bitmap(parent_index, 0); // Mark parent as free
+            index = parent_index;
+        }
+        else
+        {
+            break;
         }
     }
-    else
-    {
-        if (large_free(ptr) == -1)
-        {
-            ret = -1;
-        }
-    }
-    return ret;
+
+    return 0;
 }
 
 /*BUDDY_MEMORY*/
